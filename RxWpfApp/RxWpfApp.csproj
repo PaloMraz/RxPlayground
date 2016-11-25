@@ -78,6 +78,9 @@
     <Compile Include="MouseMoveWindow.xaml.cs">
       <DependentUpon>MouseMoveWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SearchWindow.xaml.cs">
+      <DependentUpon>SearchWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ThrottleWindow.xaml.cs">
       <DependentUpon>ThrottleWindow.xaml</DependentUpon>
     </Compile>
@@ -94,6 +97,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="MouseMoveWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SearchWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -13,6 +13,7 @@ using System.Reactive.Subjects;
 using System.Reactive.Disposables;
 using System.Reactive.Threading.Tasks;
 using System.Reactive.Concurrency;
+using System.Reactive;
 
 namespace RxConsoleApp
 {
@@ -20,9 +21,183 @@ namespace RxConsoleApp
   {
     public static void Main(string[] args)
     {
-      ToDictionary();
+      Switch();
 
       Console.ReadLine();
+    }
+
+
+    private static void Switch()
+    {
+     // var source = Observable.Interval(TimeSpan.FromSeconds(0.3)).Take(5)
+    }
+
+
+    private static void PushNumbersPeriodically()
+    {
+      int[] numbers = { 20, 30, 40, 50, 60 };
+      TimeSpan period = TimeSpan.FromMilliseconds(500);
+      var source = Observable.Create<int>(subscribe: observer =>
+      {
+        foreach(var number in numbers)
+        {
+          observer.OnNext(number);
+          Thread.Sleep(period);
+        }
+        observer.OnCompleted();
+
+        return () => { };
+      });
+
+      source.Dump("source1");
+      source.Dump("source2");
+    }
+
+    private static void Create()
+    {
+      var source = Observable.Create<int>(observer =>
+      {
+        var interval = Program.Interval(100).Take(5).Subscribe(
+          i => observer.OnNext((int)i),
+          ex => observer.OnError(ex),
+          () => observer.OnCompleted());
+
+        return interval;
+      });
+
+      source.Dump("source");
+    }
+
+
+    private static void Concat()
+    {
+      var sourceX = Program.Interval(100).Skip(3).Take(2);
+      sourceX.Dump("x");
+
+      var sourceY = Program.Interval(100).Skip(9).Take(2);
+      sourceY.Dump("y");
+
+      var concat = sourceX.Concat(sourceY);
+      concat.Dump("concat");
+    }
+
+
+    private static void Using()
+    {
+      var source = Observable.Using(
+        resourceFactory: () => Disposable.Create(() => WriteLine("Resource disposed!")),
+        observableFactory: (res) => Observable.Interval(TimeSpan.FromMilliseconds(200)).Take(10));
+
+      source.Dump("source");
+    }
+
+    private static void Finally()
+    {
+      var source = new Subject<int>();
+      source.Dump("source");
+
+      var result = source.Finally(() => WriteLine("Finally!"));
+      result.Dump("result");
+      result.Subscribe(i => { }, () => { });
+
+      source.OnNext(10);
+      source.OnNext(20);
+      source.OnError(new InvalidOperationException("Oops!"));
+    }
+
+
+    public static IObservable<long> Interval(int periodMilliseconds)
+    {
+      return Observable.Interval(TimeSpan.FromMilliseconds(periodMilliseconds));
+    }
+
+
+    public static IObservable<T> CorrectFinally<T>(this IObservable<T> source, Action finallyAction)
+    {
+      return Observable.Create<T>(subscribe: observer =>
+      {
+        var finallyOnce = Disposable.Create(finallyAction);
+        var subscription = source.Subscribe(
+          onNext: observer.OnNext, 
+          onError: ex => 
+          {
+            try
+            {
+              observer.OnError(ex);
+            }
+            finally
+            {
+              finallyOnce.Dispose();
+            }
+          }, 
+          onCompleted: () => 
+          {
+            try
+            {
+              observer.OnCompleted();
+            }
+            finally
+            {
+              finallyOnce.Dispose();
+            }
+
+          });
+        return new CompositeDisposable(finallyOnce, subscription);
+      });
+    }
+
+
+    private static void Catch()
+    {
+      var source = new Subject<int>();
+      source.Dump("source");
+
+      source
+        .Catch(Observable.Empty<int>())
+        .Dump("catched");
+
+      source.OnNext(10);
+      source.OnNext(20);
+      source.OnError(new InvalidOperationException("Oops!"));
+    }
+
+
+    private static void ToEvent()
+    {
+      var source = Observable
+        .Interval(TimeSpan.FromMilliseconds(200))
+        .Take(10);
+      source.Dump("source");
+
+      IEventSource<long> eventSource = source.ToEvent();
+      eventSource.OnNext += (i) => WriteLine($"Event {i}");      
+    }
+
+
+    private static void ToTask()
+    {
+      var source = Observable
+        .Interval(TimeSpan.FromMilliseconds(200))
+        .Take(10);
+      source.Dump("source");
+
+      Task<long> t = source.ToTask();
+      long result = t.Result;
+    }
+
+
+    private static void ToLookup()
+    {
+      var source = Observable
+        .Interval(TimeSpan.FromMilliseconds(200))
+        .Take(5);
+      source.Dump("source");
+
+      var lookup = source
+        .ToLookup(keySelector: i => i, elementSelector: i => DateTimeOffset.UtcNow.AddDays(-i))
+        .ToEnumerable()
+        .First();
+
     }
 
 
@@ -30,12 +205,13 @@ namespace RxConsoleApp
     {
       var source = Observable
         .Interval(TimeSpan.FromMilliseconds(500))
-        .Take(10)
-        .Dump("source");
+        .Take(10);
+      source.Dump("source");
 
       source
         .ToDictionary(keySelector: i => i.ToString(), elementSelector: i => new { Index = i })
-        .Dump("dict");
+        .Subscribe((d) => WriteLine($"{d}"), () => WriteLine("Completed!"));
+      source.Dump("dict");
     }
 
 
@@ -44,12 +220,11 @@ namespace RxConsoleApp
       var source = Observable
         .Interval(TimeSpan.FromMilliseconds(500))
         .Take(10)
-        .Dump("source")
-        .Select(i => (int)i)
-        .Dump("source projected");
+        .Select(i => (int)i);
+      source.Dump("source projected");
 
       var numbers = source.ToEnumerable();
-      foreach(var n in numbers)
+      foreach (var n in numbers)
       {
         WriteLine($"Enumerated {n}");
       }
@@ -58,7 +233,8 @@ namespace RxConsoleApp
 
     private static void SelectMany()
     {
-      var source = Observable.Range(1, 3).Dump("source");
+      var source = Observable.Range(1, 3);
+      source.Dump("source");
       source.SelectMany(i => Observable.Range(1, i)).Dump("select many");
     }
 
@@ -141,16 +317,14 @@ namespace RxConsoleApp
       var count = source.Count();
       count.Dump("count");
     }
-      
 
-    public static IObservable<T> Dump<T>(this IObservable<T> source, string moniker)
+
+    public static void Dump<T>(this IObservable<T> source, string moniker)
     {
       source.Subscribe(
         value => WriteLine($"{moniker}: OnNext({value}) [{Thread.CurrentThread.ManagedThreadId}]"),
         ex => WriteLine($"{moniker}: OnError({ex.GetBaseException().Message}) [{Thread.CurrentThread.ManagedThreadId}]"),
         () => WriteLine($"{moniker}: OnCompleted [{Thread.CurrentThread.ManagedThreadId}]"));
-
-      return source;
     }
 
 
@@ -164,7 +338,7 @@ namespace RxConsoleApp
 
       var eq = x.SequenceEqual(y);
       eq.Subscribe(b => WriteLine($"Equal = {b.ToString().ToUpper()}"), () => WriteLine("Equal completed"));
-      
+
       Enumerable.Range(1, 5).ToList().ForEach(i =>
       {
         x.OnNext(i);
