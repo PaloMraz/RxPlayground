@@ -33,13 +33,11 @@ namespace RxWpfApp
         .Select(term => this.Search(term))
         .Switch()
         .Select(s => s.ToList())
+        .ObserveOnDispatcher()
         .Subscribe(list =>
         {
-          this.Dispatcher.Invoke(() =>
-          {
-            this._resultsList.Items.Clear();
-            list.ForEach(s => this._resultsList.Items.Add(s));
-          });
+          this._resultsList.Items.Clear();
+          list.ForEach(s => this._resultsList.Items.Add(s));
         });
     }
 
@@ -82,7 +80,7 @@ T-SQL pre jednotlivé SELECT-y budú ako samostatné linkované .sql súbory, kt
 
       public static async Task<IEnumerable<string>> SearchAsync(string term)
       {
-        return await Task.Run(async () => 
+        return await Task.Run(async () =>
         {
           await Task.Delay(700);
           return Words.Where(w => w.Contains(term));

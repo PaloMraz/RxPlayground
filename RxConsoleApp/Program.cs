@@ -21,9 +21,89 @@ namespace RxConsoleApp
   {
     public static void Main(string[] args)
     {
-      Switch();
+      SchedulingThreading();
 
       Console.ReadLine();
+    }
+
+
+    private static void SchedulingThreading()
+    {
+      var source = Observable.Interval(TimeSpan.FromSeconds(0.5)).Take(3);
+      source.Dump("source");
+
+      var throttle = source.Throttle(TimeSpan.FromSeconds(1));
+      throttle.Dump("throttle");
+    }
+
+
+    private static void HotObservables()
+    {
+      var source = Observable
+        .Interval(TimeSpan.FromMilliseconds(200))
+        .Publish();
+      source.Connect();
+
+      using (var first = source.Subscribe(value => WriteLine($"First {value}")))
+      {
+        Thread.Sleep(250);
+        using (var second = source.Subscribe(value => WriteLine($"Second {value}")))
+        {
+          Thread.Sleep(2000);
+        }
+        Thread.Sleep(2000);
+      }
+    }
+
+
+    private static void ColdObservables()
+    {
+      var source = Observable.Interval(TimeSpan.FromMilliseconds(200));
+      using (var first = source.Subscribe(value => WriteLine($"First {value}")))
+      {
+        Thread.Sleep(250);
+        using (var second = source.Subscribe(value => WriteLine($"Second {value}")))
+        {
+          Thread.Sleep(2000);
+        }
+        Thread.Sleep(2000);
+      }
+    }
+
+
+    private static void Enumerables()
+    {
+      GreedyEnumerable().Take(1);
+      LazyEnumerable().Take(1).ToList();
+    }
+
+
+    private static IEnumerable<int> GreedyEnumerable()
+    {
+      return Enumerable.Range(1, 5).ToList();
+    }
+
+
+    private static IEnumerable<int> LazyEnumerable()
+    {
+      for(int i = 1; i <= 10; i++)
+      {
+        WriteLine($"Yield {i}");
+        yield return i;
+      }
+    }
+
+
+    private static void Zip()
+    {
+      var sourceX = Observable.Interval(TimeSpan.FromMilliseconds(100)).Take(5);
+      sourceX.Dump("x");
+      var sourceY = Observable.Interval(TimeSpan.FromMilliseconds(130)).Take(5);
+      sourceY.Dump("y");
+
+      var zip = sourceX.Zip(sourceY, (x, y) => $"{x}.{y}");
+      zip.Dump("zip");
+
     }
 
 
