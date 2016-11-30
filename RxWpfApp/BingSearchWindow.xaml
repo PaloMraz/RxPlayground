@@ -1,0 +1,33 @@
+﻿<Window x:Class="RxWpfApp.BingSearchWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:local="clr-namespace:RxWpfApp"
+  mc:Ignorable="d"
+  FocusManager.FocusedElement="{Binding ElementName=_searchText}"
+  Title="BingSearchWindow" Height="300" Width="300">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition></ColumnDefinition>
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"></RowDefinition>
+      <RowDefinition Height="Auto"></RowDefinition>
+      <RowDefinition Height="*"></RowDefinition>
+      <RowDefinition Height="Auto"></RowDefinition>
+    </Grid.RowDefinitions>
+
+    <Label Grid.Column="0" Grid.Row="0" Target="{Binding ElementName=_searchText}">_Search Text:</Label>
+    <TextBox Grid.Column="0" Grid.Row="1" Name="_searchText"></TextBox>
+
+    <ListBox Grid.Column="0" Grid.Row="2" Name="_resultsList"></ListBox>
+
+    <StatusBar Grid.Column="0" Grid.Row="3">
+      <StatusBarItem>
+        <TextBlock Name="_statusText">
+        </TextBlock>
+      </StatusBarItem>
+    </StatusBar>
+  </Grid>
+</Window>

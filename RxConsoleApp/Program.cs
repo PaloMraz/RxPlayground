@@ -21,10 +21,37 @@ namespace RxConsoleApp
   {
     public static void Main(string[] args)
     {
-      SchedulingThreading();
+      SubscribeOn();
 
       Console.ReadLine();
     }
+
+
+    private static void SubscribeOn()
+    {
+      var source = Observable.Create<int>(observer =>
+      {
+        WriteLine($"Subscribe-Start [{CurrentThreadId}]");
+        observer.OnNext(1);
+        observer.OnNext(2);
+        observer.OnNext(3);
+        observer.OnCompleted();
+        WriteLine($"Subscribe-End [{CurrentThreadId}]");
+        return Disposable.Empty;
+      });
+
+
+      WriteLine($"Creating Subscription [{CurrentThreadId}]");
+      source
+        .SubscribeOn(NewThreadScheduler.Default)
+        .Subscribe(
+          i => WriteLine($"OnNext {i} [{CurrentThreadId}]"), 
+          () => WriteLine($"OnCompleted [{CurrentThreadId}]"));
+      WriteLine($"Subscription Created [{CurrentThreadId}]");
+    }
+
+
+    private static int CurrentThreadId { get { return Thread.CurrentThread.ManagedThreadId; } }
 
 
     private static void SchedulingThreading()
